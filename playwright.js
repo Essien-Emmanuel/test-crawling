@@ -39,22 +39,46 @@ const urls = [
   },
 ];
 
-async function scrape(urlPayload) {
-  const { url, country } = urlPayload;
-  //   const exePath = await chromium.executablePath();
-  //   const browser = await playwright.chromium.launch({
-  //     executablePath: exePath,
-  //     headless: true,
-  //     args: chromium.args,
-  //   });
-  const browser = await chromium.launch({ headless: false });
+// async function scrape(urlPayload) {
+//   const { url, country } = urlPayload;
+//   const browser = await chromium.launch({ headless: false });
 
+//   const page = await browser.newPage();
+//   await page.goto(url);
+//   await page.waitForSelector("h1");
+
+//   const content = page.content();
+//   console.log(content);
+//   await browser.close();
+// }
+// scrape(urls[0]);
+
+// const { chromium } = require("playwright");
+// import { chromium } from "playwright";
+
+(async () => {
+  // Launch a Chromium browser instance
+  const browser = await chromium.launch({ headless: false }); // Set headless to false to see the browser in action
+
+  // Create a new page (tab)
   const page = await browser.newPage();
-  await page.goto(url);
+
+  //   await page.setExtraHTTPHeaders({
+  //     "Accept-Language": "en-US,en;q=0.9",
+  //     Referer: "https://www.selfridges.com/US",
+  //   });
+
+  // Navigate to the target website
+  await page.goto(urls[0].url);
+
+  // Wait for the page content to load
   await page.waitForSelector("h1");
 
-  const content = page.content();
-  console.log(content);
+  // Extract data (for example, the content of an H1 tag)
+  const content = await page.content();
+
+  console.log("Page Content:", content);
+
+  // Close the browser
   await browser.close();
-}
-scrape(urls[0]);
+})();

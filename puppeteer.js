@@ -47,6 +47,16 @@ function parsePrice(price) {
   return +price.replace("€", "").replace(",", "");
 }
 
+/**
+ * The function `createBrowserPage` uses Puppeteer to launch a browser, create a new page, intercept
+ * requests, check responses for a specific URL, and return the page and browser objects.
+ * @param {string} url - The `url` parameter is the URL of the webpage that you want to open in a headless
+ * browser using Puppeteer.
+ * @returns {
+ *   page: [Puppeteer Page Object],
+ *   browser: [Puppeteer Browser Object]
+ * }
+ */
 async function createBrowserPage(url) {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
@@ -72,6 +82,19 @@ async function createBrowserPage(url) {
   };
 }
 
+/**
+ * The function `scrape` uses Puppeteer to scrape a webpage for the title and price of a product,
+ * parses the price, and returns an object with the product details.
+ * @param {string} url - The `url` parameter in the `scrape` function is the URL of the webpage that you want to
+ * scrape for information such as title and price.
+ * @returns {{
+ *  url: string,
+ *  fullPrice: number,
+ *  discountedPrice: number,
+ *  currency: string,
+ *  title: string
+ * }}
+ */
 async function scrape(url) {
   const { browser, page } = await createBrowserPage(url);
 
@@ -105,6 +128,16 @@ async function scrapeUrls(urls) {
 }
 scrapeUrls(urls);
 
+/**
+ * The function `logOptions` retrieves and logs the options with data attributes from a select element
+ * on a web page.
+ * @param {string} url - takes a url string parameter
+ * @returns {[{
+ *  value: string,
+ *  optionValue: string
+ * }]} The `logOptions` function returns a list of objects, where each object represents an option
+ * element in a select dropdown on a web page.
+ */
 async function logOptions(url) {
   const { page, browser } = await createBrowserPage(url);
 
@@ -124,6 +157,11 @@ async function logOptions(url) {
   return optionList;
 }
 
+/**
+ * The function `logAllUrlOptions` logs options for multiple URLs using Puppeteer and Cheerio, saves
+ * the data to a JSON file, and then logs the results.
+ * @param {[string]} urls - Takes an array of url strings as parameter
+ */
 async function logAllUrlOptions(urls) {
   const results = [];
   for (const url of urls) {

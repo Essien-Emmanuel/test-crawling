@@ -37,6 +37,11 @@ const urls = [
 function parsePrice(price) {
   return +price.replace("EUR", "").replace(",", "");
 }
+/**
+ * The function `scrapeUrls` asynchronously scrapes data from a list of URLs, processes the information
+ * using Cheerio, and saves the results to a JSON file.
+ * @param {[string]} urls - Takes in an array of url strings as parameters
+ */
 
 async function scrapeUrls(urls) {
   const responsePromises = urls.map((url) => gotScraping(url));
