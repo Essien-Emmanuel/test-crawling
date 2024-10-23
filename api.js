@@ -21,8 +21,81 @@
  *      }
  * --------------------------------------------------------------------------------------------------------------
  */
+import fs from "fs";
+import { gotScraping } from "got-scraping";
+
+const { writeFile } = fs.promises;
 
 const urls = [
-    'https://www.stoneisland.com/en-it/collection/polos-and-t-shirts/slim-fit-short-sleeve-polo-shirt-2sc17-stretch-organic-cotton-pique-81152SC17A0029.html',
-    'https://www.stoneisland.com/en-it/collection/polos-and-t-shirts/short-sleeve-polo-shirt-22r39-50-2-organic-cotton-pique-811522R39V0097.html'
+  "https://www.stoneisland.com/en-it/collection/polos-and-t-shirts/slim-fit-short-sleeve-polo-shirt-2sc17-stretch-organic-cotton-pique-81152SC17A0029.html",
+  "https://www.stoneisland.com/en-it/collection/polos-and-t-shirts/short-sleeve-polo-shirt-22r39-50-2-organic-cotton-pique-811522R39V0097.html",
 ];
+const apiProductsBaseUrl =
+  "https://www.stoneisland.com/on/demandware.store/Sites-StoneEU-Site/en_IT/ProductApi-Product";
+
+/**
+ * The function `extractProductId` takes a URL string as input and extracts the PID (product ID) from it by
+ * splitting the URL and returning the last part before the file extension.
+ * @param {string} url - pass a url string as parameter
+ * @returns {string} - Takes a URL as input, splits it by "-" and then by "." for the last element, and
+ * returns the last part of the URL before the ".".
+ */
+const extractProductId = (url) => {
+  const pid = url.split("-").at(-1).split(".")[0];
+  return pid;
+};
+
+async function saveToFile(result) {
+  await writeFile("product-data", result);
+}
+
+/**
+ * The function `scrape` extracts product information from a given URL, processes the data, saves it to
+ * a file, and returns the result.
+ * @param {string} url - The `url` parameter in the `scrape` function is the URL of the product page that you
+ * want to scrape for information.
+ * @returns {{
+ *  url: string,
+ *  apiUrl: string,
+ *  fullPrice: number,
+ *  discountedPrice: number,
+ *  currency: string,
+ *  title: string
+ * }}
+ */
+async function scrape(url) {
+  const pid = extractProductId(url);
+  const productUrl = `${apiProductsBaseUrl}?pid=${pid}`;
+
+  try {
+    const response = await gotScraping(productUrl);
+    if (!response.ok) {
+      throw new Error("An error occured");
+    }
+    const data = JSON.parse(response.body);
+    const { productName: title, price } = data;
+    const { value: fullPrice, currency, discountedPrice } = price.sales;
+
+    const result = {
+      url: ` ${url}`,
+      apiUrl: ` ${productUrl}`,
+      fullPrice: +fullPrice,
+      discountedPrice: +discountedPrice ?? +fullPrice,
+      currency,
+      title,
+    };
+    await saveToFile(JSON.stringify(result));
+    return result;
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+async function scrapeUrls(urls) {
+  const results = [];
+  for (const url of urls) {
+    results.push(await scrape(url));
+  }
+  console.log(results);
+}
+scrapeUrls(urls);
