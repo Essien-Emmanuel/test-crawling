@@ -1,9 +1,11 @@
 {
   "type": "module",
   "dependencies": {
+    "@sparticuz/chromium": "^130.0.0",
     "cheerio": "^1.0.0",
     "got-scraping": "^3.2.15",
-    "playwright": "1.41",
+    "playwright": "^1.48.1",
+    "playwright-core": "^1.48.1",
     "puppeteer": "^23.5.0"
   }
 }

@@ -25,23 +25,14 @@
 
 import { gotScraping } from "got-scraping";
 import * as cheerio from "cheerio";
-import fs from "fs";
 
-const { writeFile } = fs.promises;
+import { saveToFile } from "./util.js";
 
 const urls = [
   "https://www.miinto.it/p-de-ver-s-abito-slip-3059591a-7c04-405c-8015-0936fc8ff9dd",
   "https://www.miinto.it/p-abito-a-spalline-d-jeny-fdac3d17-f571-4b55-8780-97dddf80ef35",
   "https://www.miinto.it/p-abito-bianco-con-stampa-grafica-e-scollo-a-v-profondo-2b03a3d9-fab1-492f-8efa-9151d3322ae7",
 ];
-
-async function saveToFile(result) {
-  try {
-    await writeFile("product-data/got-and-cheerio-data.json", result);
-  } catch (error) {
-    console.log(error);
-  }
-}
 
 function parsePrice(price) {
   return +price.replace("EUR", "").replace(",", "");
@@ -76,10 +67,9 @@ async function scrapeUrls(urls) {
         title,
       };
 
-      await saveToFile(JSON.stringify(result));
-
       results.push(result);
     }
+    await saveToFile("got-and-cheerio-data.json", JSON.stringify(results));
     console.log(results);
   } catch (error) {
     console.log(error);

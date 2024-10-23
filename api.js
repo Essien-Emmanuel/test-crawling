@@ -24,7 +24,7 @@
 import fs from "fs";
 import { gotScraping } from "got-scraping";
 
-const { writeFile } = fs.promises;
+import { saveToFile } from "./util.js";
 
 const urls = [
   "https://www.stoneisland.com/en-it/collection/polos-and-t-shirts/slim-fit-short-sleeve-polo-shirt-2sc17-stretch-organic-cotton-pique-81152SC17A0029.html",
@@ -44,14 +44,6 @@ const extractProductId = (url) => {
   const pid = url.split("-").at(-1).split(".")[0];
   return pid;
 };
-
-async function saveToFile(result) {
-  try {
-    await writeFile("product-data/got-data", result);
-  } catch (error) {
-    console.log(error);
-  }
-}
 
 /**
  * The function `scrape` extracts product information from a given URL, processes the data, saves it to
@@ -89,8 +81,6 @@ async function scrape(url) {
       title,
     };
 
-    await saveToFile(JSON.stringify(result));
-
     return result;
   } catch (err) {
     console.log(err);
@@ -102,6 +92,7 @@ async function scrapeUrls(urls) {
   for (const url of urls) {
     results.push(await scrape(url));
   }
+  await saveToFile("got-data.json", JSON.stringify(results));
   console.log(results);
 }
 scrapeUrls(urls);

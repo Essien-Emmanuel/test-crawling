@@ -35,28 +35,19 @@
 
 import puppeteer from "puppeteer";
 import * as cheerio from "cheerio";
-import fs from "fs";
 
-const { writeFile } = fs.promises;
+import { saveToFile } from "./util.js";
 
 const urls = [
   "https://www.outdoorsrlshop.it/catalogo/1883-trekker-rip.html",
   "https://www.outdoorsrlshop.it/catalogo/2928-arco-man-t-shirt.html",
 ];
 
-async function saveToFile(result) {
-  try {
-    await writeFile("product-data/puppeteer-and-cheerio-data", result);
-  } catch (error) {
-    console.log(error);
-  }
-}
-
 function parsePrice(price) {
   return +price.replace("€", "").replace(",", "");
 }
 
-async function scrape(url) {
+async function createBrowserPage(url) {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
   page.setRequestInterception(true);
@@ -75,6 +66,14 @@ async function scrape(url) {
   });
 
   await page.goto(url);
+  return {
+    page,
+    browser,
+  };
+}
+
+async function scrape(url) {
+  const { browser, page } = await createBrowserPage(url);
 
   const html = await page.content();
   const $ = cheerio.load(html);
@@ -93,8 +92,6 @@ async function scrape(url) {
     title,
   };
 
-  await saveToFile(JSON.stringify(result));
-
   return result;
 }
 
@@ -103,6 +100,39 @@ async function scrapeUrls(urls) {
   for (const url of urls) {
     results.push(await scrape(url));
   }
+  await saveToFile("puppeteer-and-cheerio-data.json", JSON.stringify(results));
   console.log(results);
 }
 scrapeUrls(urls);
+
+async function logOptions(url) {
+  const { page, browser } = await createBrowserPage(url);
+
+  const html = await page.content();
+  const $ = cheerio.load(html);
+  const options = $("select.form-select option[data-allegati_id]");
+
+  const optionList = [];
+
+  options.each((index, element) => {
+    const value = $(element).val();
+    const text = $(element).text();
+    optionList.push({ value: text, optionValue: value });
+  });
+
+  await browser.close();
+  return optionList;
+}
+
+async function logAllUrlOptions(urls) {
+  const results = [];
+  for (const url of urls) {
+    results.push(await logOptions(url));
+  }
+  await saveToFile(
+    "puppeteer-and-cheerio-logoptions-data.json",
+    JSON.stringify(results)
+  );
+  console.log(results);
+}
+logAllUrlOptions(urls);
