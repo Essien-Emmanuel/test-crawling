@@ -46,7 +46,11 @@ const extractProductId = (url) => {
 };
 
 async function saveToFile(result) {
-  await writeFile("product-data", result);
+  try {
+    await writeFile("product-data/got-data", result);
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 /**
@@ -69,7 +73,7 @@ async function scrape(url) {
 
   try {
     const response = await gotScraping(productUrl);
-    if (!response.ok) {
+    if (response.statusCode !== 200) {
       throw new Error("An error occured");
     }
     const data = JSON.parse(response.body);
@@ -84,7 +88,9 @@ async function scrape(url) {
       currency,
       title,
     };
+
     await saveToFile(JSON.stringify(result));
+
     return result;
   } catch (err) {
     console.log(err);
