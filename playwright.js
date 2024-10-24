@@ -70,8 +70,7 @@ async function closeCookiesBanner(page) {
  * @param {import("playwright").Page} page - The `page` parameter is typically a reference to the current page in a browser that
  * you are automating using a tool like Puppeteer or Playwright. It allows you to interact with the
  * elements on the page, navigate, click buttons, fill forms, and more programmatically.
- * @param {string} country - The `country` parameter in the `navigateAndSelectCountry` function is used to
- * specify the country code of the country you want to select in the dropdown menu. For example, if you
+ * @param {string} country - Used to specify the country code of the country you want to select in the dropdown menu. For example, if you
  * want to select Canada, you would pass the country code for Canada as the `country` parameter.
  */
 async function navigateAndSelectCountry(page, country) {
@@ -81,23 +80,19 @@ async function navigateAndSelectCountry(page, country) {
     });
 
     await page.click(".translation-country-selector-trigger-flag");
-    // First locate the element
+
     const selector = ".js-custom-select-selected";
     await page.waitForSelector(selector, { state: "attached" });
 
-    // Scroll element into view
     const element = await page.$(selector);
     await element.scrollIntoViewIfNeeded();
 
-    // Now try to click
     await element.click();
 
-    // Wait for options to be visible
     await page.waitForSelector(".js-custom-select-options", {
       state: "visible",
     });
 
-    // Select a specific country (e.g., Canada)
     await page.click(
       `.js-custom-select-option[data-countryabbrev="${country}"]`
     );
@@ -109,11 +104,9 @@ async function navigateAndSelectCountry(page, country) {
 /**
  * The function `getDataFromHTML` extracts title, currency, full price, and discounted price
  * information from HTML content using Cheerio.
- * @param {string} content - The `getDataFromHTML` function you provided seems to be a function that extracts
- * specific data from HTML content using Cheerio and populates a result object with the extracted
- * information.
+ * @param {string} content - Takes in as first parameter
  * @param {string} country
- * where the extracted values will be stored.
+ * Takes in as second parameter
  */
 function getDataFromHTML(content, country) {
   const res = {};
