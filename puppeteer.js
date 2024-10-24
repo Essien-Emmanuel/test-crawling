@@ -36,16 +36,12 @@
 import puppeteer from "puppeteer";
 import * as cheerio from "cheerio";
 
-import { saveToFile } from "./util.js";
+import { saveToFile, parsePrice } from "./util.js";
 
 const urls = [
   "https://www.outdoorsrlshop.it/catalogo/1883-trekker-rip.html",
   "https://www.outdoorsrlshop.it/catalogo/2928-arco-man-t-shirt.html",
 ];
-
-function parsePrice(price) {
-  return +price.replace("€", "").replace(",", "");
-}
 
 /**
  * The function `createBrowserPage` uses Puppeteer to launch a browser, create a new page, intercept
@@ -96,6 +92,7 @@ async function createBrowserPage(url) {
  * }}
  */
 async function scrape(url) {
+  console.log(`Crawling >>> ${url}`);
   const { browser, page } = await createBrowserPage(url);
 
   const html = await page.content();
@@ -124,7 +121,7 @@ async function scrapeUrls(urls) {
     results.push(await scrape(url));
   }
   await saveToFile("puppeteer-and-cheerio-data.json", JSON.stringify(results));
-  console.log(results);
+  console.log("FINAL RESULT:: ", results);
 }
 scrapeUrls(urls);
 
@@ -173,4 +170,5 @@ async function logAllUrlOptions(urls) {
   );
   console.log(results);
 }
-logAllUrlOptions(urls);
+
+await logAllUrlOptions(urls);

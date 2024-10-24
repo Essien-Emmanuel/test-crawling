@@ -20,9 +20,9 @@
  *      }
  * --------------------------------------------------------------------------------------------------------------
  */
-// import playwright from "playwright-core";
-// import chromium from "@sparticuz/chromium";
+import * as cheerio from "cheerio";
 import { chromium } from "playwright";
+import { saveToFile } from "./util.js";
 
 const urls = [
   {
@@ -39,46 +39,149 @@ const urls = [
   },
 ];
 
-// async function scrape(urlPayload) {
-//   const { url, country } = urlPayload;
-//   const browser = await chromium.launch({ headless: false });
+/**
+ * The function `closeCookiesBanner` closes a cookies banner on a web page using Puppeteer in
+ * JavaScript.
+ * @param  @param {import("playwright").Page} page - The `page` parameter is typically a reference to the current page in a Puppeteer
+ * browser instance. Puppeteer is a Node library which provides a high-level API to control headless
+ * Chrome or Chromium over the DevTools Protocol. The `page` parameter allows you to interact with the
+ * webpage, navigate,
+ * @returns If the cookie banner element is not found on the page, the function will return without
+ * taking any action. If the cookie banner element is found and successfully closed by clicking the
+ * accept all button, the function will also return without any specific value.
+ */
+async function closeCookiesBanner(page) {
+  try {
+    const selector = ".c-cookie-banner.--open";
+    const cookieBanner = await page.$(selector);
+    if (!cookieBanner) {
+      return;
+    }
+    await page.waitForSelector(selector, { state: "visible" });
+    await page.click(".o-button.c-cookie-banner__accept-all");
+  } catch (error) {
+    console.log("cookie banner error", error);
+  }
+}
 
-//   const page = await browser.newPage();
-//   await page.goto(url);
-//   await page.waitForSelector("h1");
+/**
+ * The function `navigateAndSelectCountry` navigates to a country selector on a webpage and selects a
+ * specific country based on the provided abbreviation.
+ * @param {import("playwright").Page} page - The `page` parameter is typically a reference to the current page in a browser that
+ * you are automating using a tool like Puppeteer or Playwright. It allows you to interact with the
+ * elements on the page, navigate, click buttons, fill forms, and more programmatically.
+ * @param {string} country - The `country` parameter in the `navigateAndSelectCountry` function is used to
+ * specify the country code of the country you want to select in the dropdown menu. For example, if you
+ * want to select Canada, you would pass the country code for Canada as the `country` parameter.
+ */
+async function navigateAndSelectCountry(page, country) {
+  try {
+    await page.waitForSelector(".translation-country-selector-trigger-flag", {
+      state: "visible",
+    });
 
-//   const content = page.content();
-//   console.log(content);
-//   await browser.close();
-// }
-// scrape(urls[0]);
+    await page.click(".translation-country-selector-trigger-flag");
+    // First locate the element
+    const selector = ".js-custom-select-selected";
+    await page.waitForSelector(selector, { state: "attached" });
 
-// const { chromium } = require("playwright");
-// import { chromium } from "playwright";
+    // Scroll element into view
+    const element = await page.$(selector);
+    await element.scrollIntoViewIfNeeded();
 
-(async () => {
-  // Launch a Chromium browser instance
-  const browser = await chromium.launch({ headless: false }); // Set headless to false to see the browser in action
+    // Now try to click
+    await element.click();
 
-  // Create a new page (tab)
-  const page = await browser.newPage();
+    // Wait for options to be visible
+    await page.waitForSelector(".js-custom-select-options", {
+      state: "visible",
+    });
 
-  //   await page.setExtraHTTPHeaders({
-  //     "Accept-Language": "en-US,en;q=0.9",
-  //     Referer: "https://www.selfridges.com/US",
-  //   });
+    // Select a specific country (e.g., Canada)
+    await page.click(
+      `.js-custom-select-option[data-countryabbrev="${country}"]`
+    );
+  } catch (error) {
+    console.log("Select country error", error);
+  }
+}
 
-  // Navigate to the target website
-  await page.goto(urls[0].url);
+/**
+ * The function `getDataFromHTML` extracts title, currency, full price, and discounted price
+ * information from HTML content using Cheerio.
+ * @param {string} content - The `getDataFromHTML` function you provided seems to be a function that extracts
+ * specific data from HTML content using Cheerio and populates a result object with the extracted
+ * information.
+ * @param {string} country
+ * where the extracted values will be stored.
+ */
+function getDataFromHTML(content, country) {
+  const res = {};
+  const $ = cheerio.load(content);
 
-  // Wait for the page content to load
-  await page.waitForSelector("h1");
+  const title = $("p.sc-5ec017c-3.hZrRFQ").text().trim();
+  const currency = $(`li[data-countryabbrev="${country}"]`)
+    .text()
+    .split(" ")
+    .at(-2);
+  const fullPrice = $("div.sc-eb97dd86-1.focev").text().slice(1);
 
-  // Extract data (for example, the content of an H1 tag)
-  const content = await page.content();
+  res["title"] = title;
+  res["currency"] = currency;
+  res["fullPrice"] = +fullPrice;
+  res["discountedPrice"] = +fullPrice;
 
-  console.log("Page Content:", content);
+  return res;
+}
 
-  // Close the browser
-  await browser.close();
-})();
+async function scrapUrl({ url, country }) {
+  console.log(`Crawling >>> ${url}`);
+
+  let result = {
+    url,
+  };
+  try {
+    const browser = await chromium.launch({ headless: false });
+
+    const page = await browser.newPage();
+
+    const response = await page.goto(url);
+
+    await page.waitForLoadState("networkidle");
+
+    await closeCookiesBanner(page);
+
+    await navigateAndSelectCountry(page, country);
+
+    const content = await page.content();
+
+    const statusCode = response.status();
+    if (statusCode !== 200) {
+      throw new Error("An error occurred");
+    }
+
+    const res = getDataFromHTML(content, country);
+
+    result = {
+      ...result,
+      ...res,
+    };
+
+    await browser.close();
+    return result;
+  } catch (error) {
+    console.log("error occurred", error);
+  }
+}
+
+async function scrapUrls(urls) {
+  const results = [];
+  for (const urlObj of urls) {
+    const res = await scrapUrl(urlObj);
+    results.push(res);
+  }
+  await saveToFile("playwrite-and-cheerio-data.json", JSON.stringify(results));
+  console.log("FINAL RESULT: ", results);
+}
+
+await scrapUrls(urls);

@@ -21,7 +21,7 @@
  *      }
  * --------------------------------------------------------------------------------------------------------------
  */
-import fs from "fs";
+
 import { gotScraping } from "got-scraping";
 
 import { saveToFile } from "./util.js";
@@ -60,6 +60,8 @@ const extractProductId = (url) => {
  * }}
  */
 async function scrape(url) {
+  console.log(`Crawling >>> ${url}`);
+
   const pid = extractProductId(url);
   const productUrl = `${apiProductsBaseUrl}?pid=${pid}`;
 
@@ -95,4 +97,5 @@ async function scrapeUrls(urls) {
   await saveToFile("got-data.json", JSON.stringify(results));
   console.log(results);
 }
-scrapeUrls(urls);
+
+await scrapeUrls(urls);

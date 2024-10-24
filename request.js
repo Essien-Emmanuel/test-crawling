@@ -26,7 +26,7 @@
 import { gotScraping } from "got-scraping";
 import * as cheerio from "cheerio";
 
-import { saveToFile } from "./util.js";
+import { saveToFile, parsePrice } from "./util.js";
 
 const urls = [
   "https://www.miinto.it/p-de-ver-s-abito-slip-3059591a-7c04-405c-8015-0936fc8ff9dd",
@@ -34,9 +34,6 @@ const urls = [
   "https://www.miinto.it/p-abito-bianco-con-stampa-grafica-e-scollo-a-v-profondo-2b03a3d9-fab1-492f-8efa-9151d3322ae7",
 ];
 
-function parsePrice(price) {
-  return +price.replace("EUR", "").replace(",", "");
-}
 /**
  * The function `scrapeUrls` asynchronously scrapes data from a list of URLs, processes the information
  * using Cheerio, and saves the results to a JSON file.
@@ -51,6 +48,8 @@ async function scrapeUrls(urls) {
   try {
     const responses = await Promise.all(responsePromises);
     for (const response of responses) {
+      console.log(`Crawling >>> ${response.url}`);
+
       const status = response.statusCode;
 
       if (status !== 200) {
@@ -59,25 +58,43 @@ async function scrapeUrls(urls) {
       const $ = cheerio.load(response.body);
 
       const title = $("h1").text().trim();
-      const discountedPrice = $('[class*="-isDiscounted-true"]').text().trim();
-      const price = $('p[data-testid="product-previous-price"]').text().trim();
+
+      const priceElement = $('[data-testid="product-price"]');
+      const prevPriceElement = $('[data-testid="product-previous-price"]');
+
+      const isDiscounted = priceElement
+        .attr("class")
+        .includes("isDiscounted-true");
+
+      let price;
+      let discountedPrice;
+
+      if (isDiscounted && prevPriceElement.length) {
+        discountedPrice = priceElement.text().trim();
+        price = prevPriceElement.text().trim();
+      } else {
+        price = priceElement.text().trim();
+      }
 
       const fullPrice = parsePrice(price);
+      const parsedDiscountedPrice = discountedPrice
+        ? parsePrice(discountedPrice)
+        : null;
 
       const result = {
         url: ` ${response.url}`,
         fullPrice: fullPrice,
-        discountedPrice: parsePrice(discountedPrice) ?? fullPrice,
+        discountedPrice: parsedDiscountedPrice ?? fullPrice,
         currency: "EUR",
         title,
       };
-
       results.push(result);
     }
     await saveToFile("got-and-cheerio-data.json", JSON.stringify(results));
-    console.log(results);
+
+    console.log("FINAL RESULT:: ", results);
   } catch (error) {
     console.log(error);
   }
 }
-scrapeUrls(urls);
+await scrapeUrls(urls);
