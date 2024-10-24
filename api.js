@@ -95,7 +95,7 @@ async function scrapeUrls(urls) {
     results.push(await scrape(url));
   }
   await saveToFile("got-data.json", JSON.stringify(results));
-  console.log(results);
+  console.log("FINAL RESULT:: ", results);
 }
 
 await scrapeUrls(urls);
